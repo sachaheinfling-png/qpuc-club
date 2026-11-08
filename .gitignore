@@ -1,0 +1,32 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+dist/
+build/
+*.egg-info/
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Secrets et environnement
+.env
+.env.*
+
+# Données et sorties volumineuses
+data/raw/
+*.log
+outputs/
+
+# Éditeurs / système
+.idea/
+Thumbs.db
+Desktop.ini
+.DS_Store
+# QPUC
+joueurs.json
+historique.csv
+*.spec
+QPUC_Club.exe

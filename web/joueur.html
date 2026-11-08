@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0d1b3d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Buzzer QPUC</title>
+<style>
+:root{--fond:#0d1b3d;--fond2:#152a5c;--or:#ffd23f;--vert:#2fbf71;--rouge:#e5484d;--gris:#5b6a91;--bleu:#3d8bfd}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--fond);color:#fff;font-family:"Segoe UI",Roboto,Arial,sans-serif;
+  overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.cache{display:none!important}
+
+/* choix du nom */
+#ecranNom{padding:20px 16px 40px}
+#ecranNom h1{font-size:30px;margin:6px 0 4px;color:var(--or);text-align:center}
+#ecranNom p{font-size:20px;text-align:center;margin:0 0 18px;color:#c9d4f2}
+#noms{display:flex;flex-direction:column;gap:12px}
+#noms button{font:inherit;font-size:30px;font-weight:700;padding:22px 16px;border:0;border-radius:18px;
+  background:var(--fond2);color:#fff;border:3px solid #2b4a94}
+#noms button:active{background:var(--bleu)}
+
+/* buzzer */
+#ecranBuzz{position:fixed;inset:0;display:flex;flex-direction:column;transition:background .12s}
+#haut{display:flex;align-items:center;gap:10px;padding:14px 16px;padding-top:max(14px,env(safe-area-inset-top));
+  background:rgba(0,0,0,.25)}
+#monNom{font-size:28px;font-weight:800;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#monScore{font-size:30px;font-weight:900;background:rgba(0,0,0,.3);padding:4px 14px;border-radius:12px}
+#changer{font:inherit;font-size:16px;background:transparent;color:#c9d4f2;border:2px solid #c9d4f2;border-radius:10px;padding:6px 10px}
+#zone{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;touch-action:none}
+#buzzer{width:min(82vw,62vh);height:min(82vw,62vh);border-radius:50%;border:0;
+  background:radial-gradient(circle at 35% 30%,#ff8a8d,var(--rouge) 55%,#9b1c20);
+  box-shadow:0 14px 0 #6d1114,0 18px 40px rgba(0,0,0,.5);
+  color:#fff;font-size:min(16vw,11vh);font-weight:900;letter-spacing:2px;font-family:inherit;
+  display:grid;place-items:center;touch-action:none;transition:transform .05s, filter .2s}
+#buzzer.appuye{transform:translateY(10px);box-shadow:0 4px 0 #6d1114,0 6px 16px rgba(0,0,0,.5)}
+#buzzer.eteint{filter:grayscale(1) brightness(.55)}
+#texte{font-size:34px;font-weight:800;text-align:center;margin-top:26px;min-height:46px;padding:0 10px}
+#sousTexte{font-size:20px;text-align:center;color:#e8ecfa;margin-top:6px;min-height:26px}
+
+.s-main{background:var(--vert)!important}
+.s-main #buzzer{background:radial-gradient(circle at 35% 30%,#b6ffd6,#1f9c59 60%,#0f5a32);box-shadow:0 6px 0 #0f5a32}
+.s-tour{background:#1d4fb3!important}
+.s-qualifie{background:#1f6e46!important}
+
+#deco{position:fixed;left:0;right:0;bottom:0;background:var(--rouge);color:#fff;font-size:22px;font-weight:700;
+  text-align:center;padding:14px}
+video{position:fixed;width:1px;height:1px;opacity:0;pointer-events:none}
+</style>
+</head>
+<body>
+
+<section id="ecranNom" class="cache">
+  <h1>Qui êtes-vous ?</h1>
+  <p>Touchez votre nom</p>
+  <div id="noms"></div>
+</section>
+
+<section id="ecranBuzz" class="cache">
+  <div id="haut">
+    <div id="monNom"></div>
+    <div id="monScore"></div>
+    <button id="changer">Changer</button>
+  </div>
+  <div id="zone">
+    <button id="buzzer">BUZZ</button>
+    <div id="texte"></div>
+    <div id="sousTexte"></div>
+  </div>
+</section>
+
+<div id="deco" class="cache">Connexion au PC… patientez</div>
+<video id="veille" src="veille.mp4" muted playsinline loop></video>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let ws, E = null, monId = null, decalage = null, mesures = [], statutPrec = "";
+try { monId = localStorage.getItem("qpuc_joueur"); } catch(e){}
+
+// ------------------------------------------------ connexion
+function connecter(){
+  ws = new WebSocket("ws://" + location.host + "/ws/joueur");
+  ws.onopen = () => {
+    $("deco").classList.add("cache");
+    if (monId) envoyer({type:"choisir", id:monId});
+    mesures = []; for (let i = 0; i < 10; i++) setTimeout(ping, i * 120);
+  };
+  ws.onmessage = ev => {
+    const m = JSON.parse(ev.data);
+    if (m.type === "pong") return recevoirPong(m);
+    if (m.type === "etat") { E = m; rendre(); }
+  };
+  ws.onclose = () => { $("deco").classList.remove("cache"); setTimeout(connecter, 800); };
+}
+function envoyer(o){ if (ws && ws.readyState === 1) ws.send(JSON.stringify(o)); }
+
+// ------------------------------------------------ synchronisation d'horloge
+// On estime l'écart entre l'horloge du téléphone et celle du PC pour que
+// le PC sache à quel instant exact chaque joueur a appuyé (équité Wi-Fi).
+function ping(){ envoyer({type:"ping", t0:performance.now()}); }
+function recevoirPong(m){
+  const t1 = performance.now(), rtt = t1 - m.t0;
+  mesures.push({rtt, d: m.ts - (m.t0 + t1) / 2});
+  if (mesures.length > 30) mesures.shift();
+  decalage = mesures.reduce((a, b) => b.rtt < a.rtt ? b : a).d;
+}
+setInterval(ping, 3000);
+
+// ------------------------------------------------ le buzz
+const B = $("buzzer");
+function appui(ev){
+  ev.preventDefault();
+  let t = (ev.timeStamp && Math.abs(ev.timeStamp - performance.now()) < 1000) ? ev.timeStamp : performance.now();
+  envoyer({type:"buzz", t: decalage === null ? null : t + decalage});   // envoi immédiat, avant tout le reste
+  B.classList.add("appuye");
+  if (navigator.vibrate) navigator.vibrate(40);
+  reveiller();
+}
+B.addEventListener("pointerdown", appui, {passive:false});
+B.addEventListener("touchstart", e => e.preventDefault(), {passive:false});
+["pointerup","pointercancel","pointerleave"].forEach(n => B.addEventListener(n, () => B.classList.remove("appuye")));
+document.addEventListener("contextmenu", e => e.preventDefault());
+
+// garder l'écran allumé (vidéo muette invisible)
+let veilleOk = false;
+function reveiller(){
+  if (veilleOk) return;
+  if ("wakeLock" in navigator) navigator.wakeLock.request("screen").then(() => veilleOk = true).catch(() => {});
+  const v = $("veille"); const p = v.play(); if (p && p.then) p.then(() => veilleOk = true).catch(() => {});
+}
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") { veilleOk = false; } });
+
+// ------------------------------------------------ rendu
+function choisir(id){ monId = id; try { localStorage.setItem("qpuc_joueur", id); } catch(e){} envoyer({type:"choisir", id}); reveiller(); }
+$("changer").onclick = () => { if (confirm("Changer de nom ?")) { monId = null; try { localStorage.removeItem("qpuc_joueur"); } catch(e){} envoyer({type:"quitter"}); } };
+
+function rendre(){
+  if (!E.id) {
+    if (monId && E.liste.some(j => j.id === monId)) { envoyer({type:"choisir", id:monId}); return; }
+    monId = null;
+    $("ecranNom").classList.remove("cache"); $("ecranBuzz").classList.add("cache");
+    $("noms").innerHTML = E.liste.length ? E.liste.map(j => `<button onclick="choisir('${j.id}')">${esc(j.nom)}</button>`).join("")
+      : '<p>Le lecteur n\'a pas encore ajouté de joueurs.</p>';
+    return;
+  }
+  $("ecranNom").classList.add("cache"); $("ecranBuzz").classList.remove("cache");
+  $("monNom").textContent = E.nom;
+  $("monScore").textContent = E.score === undefined ? "" : E.score + (E.mode === "quatre" ? " /4" : E.cible ? " /" + E.cible : "") ;
+  $("monScore").classList.toggle("cache", E.score === undefined);
+
+  const st = E.statut || "attente", Z = $("ecranBuzz");
+  Z.className = "s-" + st;
+  B.classList.toggle("eteint", st !== "ouvert" && st !== "main");
+  B.textContent = st === "main" ? "À VOUS" : st === "qualifie" ? "✔" : "BUZZ";
+  const sous = {
+    ouvert: "Appuyez dès que vous connaissez la réponse",
+    main: "Donnez votre réponse !",
+    autre: "", bloque: "Attendez la question suivante",
+    ferme: "", attente: E.mode ? "" : "La partie va commencer",
+    tour: "Série en cours : " + (E.serie || 0) + " — pas besoin d'appuyer",
+    qualifie: "Bravo ! Vous attendez la suite.",
+    spectateur: "Vous pouvez regarder", fini: "",
+  }[st] || "";
+  $("texte").textContent = (st === "ouvert" || st === "main") ? "" : (E.texte || "");
+  $("sousTexte").textContent = sous;
+  if (st === "main" && statutPrec !== "main" && navigator.vibrate) navigator.vibrate([200, 80, 200]);
+  if (st !== "ouvert") B.classList.remove("appuye");
+  statutPrec = st;
+}
+
+connecter();
+</script>
+</body>
+</html>

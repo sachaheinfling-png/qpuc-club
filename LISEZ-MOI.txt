@@ -1,0 +1,83 @@
+QPUC CLUB — Buzzers sur téléphone et tableau des scores
+=========================================================
+
+LANCER
+  Double-cliquez sur « QPUC_Club.exe ». Python n'a pas besoin d'être installé.
+  Une fenêtre noire s'ouvre : laissez-la ouverte pendant la partie.
+  L'écran du lecteur s'affiche dans le navigateur. Pour arrêter QPUC,
+  fermez la fenêtre noire.
+
+  Windows peut afficher « Windows a protégé votre ordinateur » au premier
+  lancement. Si vous avez téléchargé QPUC depuis la publication officielle
+  du club, cliquez sur « Informations complémentaires », puis sur
+  « Exécuter quand même ».
+
+  Windows peut aussi demander si QPUC peut accéder au réseau. Autorisez
+  l'accès sur les réseaux privés (Wi-Fi de la salle ou point d'accès du PC) :
+  c'est nécessaire pour que les téléphones se connectent. Il n'est pas
+  nécessaire d'autoriser les réseaux publics.
+
+LE WI-FI
+  Le PC et les téléphones doivent être sur le même Wi‑Fi.
+  Pas de Wi‑Fi dans la salle ? Activez le « Point d'accès mobile » de
+  Windows (Paramètres > Réseau) et connectez les téléphones dessus.
+  Internet n'est pas nécessaire.
+  Si le QR code ou l'URL ne s'ouvre pas sur les téléphones, vérifiez bien
+  que tous les appareils sont connectés au même réseau.
+
+SIMPLICITÉ ET ANNULATION
+  Le bouton « Annuler » en haut de l'écran permet de revenir à la dernière
+  action. Ctrl+Z fait la même chose.
+  Pour les personnes âgées, les écrans restent très simples : un bouton gros,
+  des textes lisibles et toujours le même chemin de prise en main.
+
+LES JOUEURS
+  Chaque joueur scanne le QR code avec l'appareil photo de son téléphone,
+  puis touche son nom. Le téléphone s'en souvient pour les fois suivantes.
+  Conseil : désactivez la mise en veille de l'écran du téléphone.
+  Un joueur sans téléphone : quand les buzzers sont ouverts, cliquez sur
+  sa carte sur le PC pour lui donner la main.
+
+LES MANCHES
+  9 points gagnants : tout le monde buzze. Les 3 premiers à 9 points sont
+                      qualifiés et ne buzzent plus (jusqu'à 3 joueurs selon
+                      l'effectif). Sans qualifié, les valeurs tournent : 1, 2,
+                      3, puis recommencent. Avec un qualifié, chaque question
+                      vaut 2 pts ; avec deux, 3 pts. Une question sans réponse
+                      compte aussi dans le cycle.
+  4 à la suite      : pas de buzzer. Chacun son tour ; une erreur remet la
+                      série à 0 ; le score est la meilleure série (4 max).
+                      Pas de chrono : le lecteur clique « Fin du tour ».
+  En cas d'égalité touchant les 2 places pour le face-à-face, les joueurs
+  concernés jouent un départage au buzzer : chaque bonne réponse vaut 1 pt,
+  les 2 premiers à 2 pts se qualifient. Une place déjà gagnée en 4 à la suite
+  reste acquise.
+  Face-à-face       : deux joueurs buzzent. Après une bonne réponse, le lecteur
+                      choisit si le joueur reçoit 1, 2, 3 ou 4 points. Le
+                      premier à 12 points gagne.
+  Partie libre      : buzzer + points, objectif réglable ou sans limite.
+  Une mauvaise réponse bloque le joueur pour cette question : la main passe.
+  Le lecteur lance chaque manche suivante depuis l'écran de fin : qualifiés
+  du 9 points vers le 4 à la suite, puis les qualifiés vers le face-à-face.
+  Il peut modifier les joueurs avant le lancement. Avec moins de 4 joueurs,
+  il peut refuser le 9 points pour démarrer directement le 4 à la suite.
+
+TOUCHES DU CLAVIER (écran du lecteur)
+  Entrée = question suivante   B = bonne réponse   M = mauvaise réponse
+  P = personne                 1/2/3 = valeur      F = fin du tour (4 à la suite)
+  Bouton « Annuler » en haut de l'écran = annuler la dernière action
+  Ctrl+Z = même action au clavier
+  Les touches 1/2/3 corrigent la valeur de la question en cours ; la question
+  suivante reprend automatiquement sa valeur selon les règles de la manche.
+  En face-à-face, après une bonne réponse, les touches 1/2/3/4 attribuent les
+  points choisis au joueur.
+
+ÉQUITÉ DU BUZZ
+  Chaque téléphone synchronise son horloge avec le PC. Quand deux joueurs
+  appuient presque en même temps, c'est l'heure réelle d'appui qui compte,
+  pas la vitesse du Wi-Fi. L'écran affiche l'écart (ex. « Ensuite : Jeanne
+  (+35 ms) »).
+
+FICHIERS CRÉÉS
+  joueurs.json   : la liste des membres du club et les réglages
+  historique.csv : les résultats de chaque manche (s'ouvre avec Excel)

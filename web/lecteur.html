@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QPUC Club — Lecteur</title>
+<script src="qrcode.js"></script>
+<style>
+:root{
+  --fond:#0d1b3d; --fond2:#152a5c; --carte:#1d3672; --carte2:#24418a;
+  --texte:#ffffff; --doux:#c9d4f2; --or:#ffd23f; --vert:#2fbf71; --rouge:#e5484d;
+  --bleu:#3d8bfd; --gris:#5b6a91;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--fond);color:var(--texte);
+  font-family:"Segoe UI",Tahoma,Arial,sans-serif;font-size:20px;line-height:1.3}
+button{font:inherit;cursor:pointer;border:0;border-radius:14px;color:#fff}
+button:disabled{opacity:.35;cursor:default}
+input[type=text],input[type=number]{font:inherit;font-size:24px;padding:10px 14px;border-radius:12px;
+  border:2px solid var(--gris);background:#0a1530;color:#fff}
+input[type=number]{width:110px;text-align:center}
+.cache{display:none!important}
+
+/* ---------- barre du haut */
+header{display:flex;align-items:center;gap:16px;padding:12px 22px;background:var(--fond2);
+  border-bottom:3px solid var(--or)}
+header h1{margin:0;font-size:30px;letter-spacing:.5px}
+header h1 span{color:var(--or)}
+#titreManche{font-size:28px;font-weight:700;color:var(--or)}
+header .espace{flex:1}
+.btnPetit{background:var(--carte2);padding:10px 18px;font-size:20px;font-weight:600}
+.btnPetit:hover:not(:disabled){background:var(--bleu)}
+.btnAnnuler{background:var(--or);color:#1a1300;border:3px solid #fff;padding:9px 16px;
+  font-size:23px;font-weight:900;line-height:1.1;box-shadow:0 0 0 3px rgba(255,210,63,.35)}
+.btnAnnuler:hover:not(:disabled){background:#ffe27a}
+.btnAnnuler small{display:block;font-size:15px;font-weight:700;margin-top:3px}
+#deco{background:var(--rouge);padding:8px 16px;border-radius:10px;font-weight:700}
+
+main{padding:20px 24px 40px}
+h2{font-size:28px;margin:0 0 14px;color:var(--or)}
+
+/* ---------- accueil */
+#accueil{display:grid;grid-template-columns:1.25fr 1fr;gap:24px}
+.panneau{background:var(--fond2);border-radius:20px;padding:22px}
+#listeJoueurs{display:flex;flex-direction:column;gap:8px;max-height:52vh;overflow:auto;padding-right:6px}
+.ligneJ{display:flex;align-items:center;gap:12px;background:var(--carte);border-radius:14px;padding:8px 12px;
+  font-size:26px;cursor:pointer;user-select:none}
+.ligneJ.non{opacity:.5}
+.coche{width:40px;height:40px;border-radius:10px;border:3px solid var(--doux);display:grid;place-items:center;
+  font-size:28px;font-weight:900;flex:none}
+.ligneJ:not(.non) .coche{background:var(--vert);border-color:var(--vert)}
+.ligneJ .nomJ{flex:1}
+.tel{font-size:18px;color:var(--vert);font-weight:700}
+.ligneJ .outil{background:transparent;font-size:22px;padding:6px 10px;opacity:.7}
+.ligneJ .outil:hover{opacity:1;background:var(--carte2)}
+.ajout{display:flex;gap:10px;margin-top:14px}
+.ajout input{flex:1}
+.btnVert{background:var(--vert);font-weight:700;padding:12px 22px;font-size:22px}
+.lienTout{display:flex;gap:10px;margin-bottom:12px}
+#qr{background:#fff;border-radius:16px;padding:12px;width:260px;height:260px;margin:0 auto}
+#qr svg{width:100%;height:100%;display:block}
+#urlJ{font-size:30px;font-weight:800;text-align:center;margin:14px 0 4px;color:var(--or);word-break:break-all}
+#autresUrl{font-size:16px;color:var(--doux);text-align:center}
+.aide{font-size:18px;color:var(--doux)}
+#jeux{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.carteJeu{background:var(--carte);padding:22px 18px;border-radius:20px;text-align:left;border:3px solid transparent}
+.carteJeu:hover{border-color:var(--or);background:var(--carte2)}
+.carteJeu b{display:block;font-size:30px;color:var(--or);margin-bottom:6px}
+.carteJeu span{font-size:18px;color:var(--doux)}
+
+/* ---------- fenêtre de lancement */
+#voile{position:fixed;inset:0;background:rgba(5,10,25,.8);display:grid;place-items:center;z-index:20}
+.fenetre{background:var(--fond2);border:3px solid var(--or);border-radius:24px;padding:28px;width:min(900px,94vw);
+  max-height:92vh;overflow:auto}
+.fenetre h2{font-size:34px}
+#choixJoueurs{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0 20px}
+.param{display:flex;align-items:center;gap:14px;font-size:24px;margin:10px 0}
+.boutonsFen{display:flex;gap:14px;justify-content:flex-end;margin-top:22px}
+.btnGris{background:var(--gris);font-weight:700;padding:12px 22px;font-size:22px}
+
+/* ---------- jeu */
+#bandeau{border-radius:24px;min-height:190px;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;text-align:center;padding:16px;margin-bottom:18px;transition:background .15s}
+#bandeau .gros{font-size:84px;font-weight:900;line-height:1.05}
+#bandeau .moyen{font-size:36px;font-weight:700}
+#bandeau .petit{font-size:22px;opacity:.9;margin-top:6px}
+.b-ferme{background:var(--carte)}
+.b-ouvert{background:#16613d}
+.b-buzz{background:var(--or);color:#1a1300}
+.b-fini{background:linear-gradient(135deg,#7a5a00,#c99400)}
+@keyframes eclair{0%{transform:scale(1.05)}100%{transform:scale(1)}}
+.flash{animation:eclair .25s ease-out}
+
+#commandes{display:grid;grid-template-columns:1.2fr 1fr 1fr .8fr;gap:16px;margin-bottom:14px}
+.cmd{padding:22px 10px;font-size:30px;font-weight:800;border-radius:20px;line-height:1.1}
+.cmd small{display:block;font-size:17px;font-weight:600;opacity:.85;margin-top:4px}
+.cmdOuvrir{background:var(--bleu)} .cmdBonne{background:var(--vert)} .cmdMauvaise{background:var(--rouge)}
+.cmdPersonne{background:var(--gris)}
+#choixPointsFace{display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;
+  background:var(--fond2);border-radius:16px;padding:16px;margin-bottom:18px;font-size:26px;font-weight:700}
+.pointsFace{min-width:120px;padding:14px 20px;background:var(--vert);font-size:30px;font-weight:900}
+.pointsFace:hover{background:#218c54}
+#ligneValeur{display:flex;align-items:center;gap:14px;font-size:26px;margin-bottom:18px;flex-wrap:wrap}
+#correctionValeur{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.valeurAffichee{display:flex;align-items:baseline;gap:8px;font-size:26px;font-weight:700}
+.valeurCourante{font-size:68px;font-weight:900;line-height:1;color:var(--or)}
+.val{width:74px;height:64px;font-size:34px;font-weight:900;background:var(--carte)}
+.val.actif{background:var(--or);color:#1a1300}
+#infoQ{margin-left:auto;color:var(--doux)}
+
+#cartes{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+.carteJ{background:var(--carte);border-radius:20px;padding:16px 18px;border:4px solid transparent;position:relative}
+.carteJ.main{border-color:var(--or);background:#3b3a1a}
+.carteJ.bloque{opacity:.5}
+.carteJ.qualif{border-color:var(--vert)}
+.carteJ.cliquable{cursor:pointer}
+.carteJ.cliquable:hover{border-color:var(--bleu)}
+.carteJ .n{font-size:34px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:26px}
+.carteJ .s{font-size:76px;font-weight:900;line-height:1;margin:6px 0}
+.carteJ .s small{font-size:28px;color:var(--doux);font-weight:600}
+.carteJ .etiq{font-size:20px;font-weight:700;min-height:26px}
+.carteJ .pt{position:absolute;top:16px;right:16px;width:18px;height:18px;border-radius:50%;background:var(--gris)}
+.carteJ .pt.on{background:var(--vert);box-shadow:0 0 10px var(--vert)}
+.points{display:flex;gap:5px;flex-wrap:wrap;margin:4px 0 10px}
+.points i{width:16px;height:16px;border-radius:50%;background:#0a1530;border:2px solid var(--gris)}
+.points i.p{background:var(--or);border-color:var(--or)}
+.ajust{display:flex;gap:8px}
+.ajust button{background:var(--carte2);width:56px;height:44px;font-size:26px;font-weight:800}
+
+/* 4 à la suite */
+#tour{background:var(--fond2);border-radius:24px;padding:22px;margin-bottom:18px;text-align:center}
+#tour .nomTour{font-size:64px;font-weight:900;color:var(--or)}
+.ronds{display:flex;gap:22px;justify-content:center;margin:18px 0}
+.ronds i{width:90px;height:90px;border-radius:50%;border:6px solid var(--doux);background:#0a1530}
+.ronds i.p{background:var(--vert);border-color:var(--vert)}
+#cmdQuatre{display:grid;grid-template-columns:1fr 1fr .8fr;gap:16px;max-width:1000px;margin:0 auto}
+.historique{font-size:26px;letter-spacing:4px;min-height:34px}
+.btnJouer{background:var(--bleu);font-size:22px;font-weight:700;padding:10px 16px;margin-top:6px;width:100%}
+
+/* fin */
+#fin{position:fixed;inset:0;background:rgba(5,10,25,.88);display:grid;place-items:center;z-index:15}
+#fin .fenetre{text-align:center}
+#fin ol{font-size:34px;text-align:left;display:inline-block;margin:10px auto 0}
+#fin li{margin:6px 0}
+#fin li b{color:var(--or)}
+
+#cartes{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+@media (max-height:900px){
+  header{padding:8px 18px} header h1{font-size:26px} #titreManche{font-size:24px}
+  main{padding:12px 18px 24px}
+  #bandeau{min-height:120px;margin-bottom:12px;padding:10px}
+  #bandeau .gros{font-size:64px} #bandeau .moyen{font-size:28px} #bandeau .petit{font-size:19px}
+  #commandes{margin-bottom:10px;gap:12px} .cmd{padding:12px 8px;font-size:25px} .cmd small{font-size:15px;margin-top:2px}
+  #ligneValeur{margin-bottom:10px;font-size:22px} .valeurAffichee{font-size:22px} .valeurCourante{font-size:54px}
+  .val{height:48px;width:60px;font-size:28px}
+  .carteJ{padding:10px 14px} .carteJ .n{font-size:28px} .carteJ .s{font-size:54px;margin:2px 0}
+  .points{margin:2px 0 6px} .ajust button{height:38px}
+  #tour{padding:14px;margin-bottom:12px} #tour .nomTour{font-size:50px} .ronds i{width:70px;height:70px} .ronds{margin:10px 0}
+  #listeJoueurs{max-height:44vh} #qr{width:220px;height:220px}
+  .carteJeu{padding:16px 14px} .carteJeu b{font-size:26px}
+  #raccourcis{margin-top:12px}
+}
+#raccourcis{margin-top:24px;font-size:17px;color:var(--doux)}
+kbd{background:var(--carte2);border-radius:6px;padding:1px 8px;font-family:inherit;font-weight:700;color:#fff}
+#qrMini{position:fixed;inset:0;background:rgba(5,10,25,.9);display:grid;place-items:center;z-index:30}
+</style>
+</head>
+<body>
+<header>
+  <h1>QPUC <span>Club</span></h1>
+  <div id="titreManche"></div>
+  <div class="espace"></div>
+  <span id="deco" class="cache">Connexion perdue… reconnexion</span>
+  <button class="btnPetit cache" id="btnQr">📱 QR code</button>
+  <button class="btnAnnuler cache" id="btnAnnuler" title="Annuler la dernière action (Ctrl+Z)" aria-label="Annuler la dernière action">
+    ↶ Annuler<small>dernière action · Ctrl+Z</small>
+  </button>
+  <button class="btnPetit cache" id="btnTerminer">Terminer la manche</button>
+</header>
+
+<main>
+  <!-- =============== ACCUEIL =============== -->
+  <section id="accueil" class="cache">
+    <div class="panneau">
+      <h2>Joueurs présents ce soir</h2>
+      <div class="lienTout">
+        <button class="btnPetit" onclick="envoyer({type:'tous_presents',oui:true})">Tout cocher</button>
+        <button class="btnPetit" onclick="envoyer({type:'tous_presents',oui:false})">Tout décocher</button>
+      </div>
+      <div id="listeJoueurs"></div>
+      <form class="ajout" onsubmit="ajouterJoueur(event)">
+        <input type="text" id="nouveauNom" placeholder="Nom du nouveau joueur" maxlength="30">
+        <button class="btnVert">Ajouter</button>
+      </form>
+    </div>
+    <div class="panneau">
+      <h2>Buzzers sur téléphone</h2>
+      <div id="qr"></div>
+      <div id="urlJ"></div>
+      <div id="autresUrl"></div>
+      <p class="aide">Les téléphones doivent être sur <b>le même Wi-Fi</b> que ce PC.
+        Scannez le QR code avec l'appareil photo, puis touchez votre nom.</p>
+      <p class="aide" id="nbTel"></p>
+    </div>
+    <div id="jeux">
+      <button class="carteJeu" onclick="preparer('neuf')"><b>9 points gagnants</b>
+        <span>Tout le monde buzze. Les trois premiers à 9 points sont qualifiés.</span></button>
+      <button class="carteJeu" onclick="preparer('quatre')"><b>4 à la suite</b>
+        <span>Chacun son tour, sans buzzer. Une erreur remet la série à zéro.</span></button>
+      <button class="carteJeu" onclick="preparer('face')"><b>Face-à-face</b>
+        <span>Deux joueurs buzzent. Le premier à 12 points gagne.</span></button>
+      <button class="carteJeu" onclick="preparer('libre')"><b>Partie libre</b>
+        <span>Buzzer et points, sans règle d'élimination.</span></button>
+    </div>
+  </section>
+
+  <!-- =============== MANCHE AVEC BUZZER =============== -->
+  <section id="jeuBuzz" class="cache">
+    <div id="bandeau"></div>
+    <div id="commandes">
+      <button class="cmd cmdOuvrir" id="cOuvrir" onclick="envoyer({type:'ouvrir'})">▶ Question suivante<small>touche Entrée</small></button>
+      <button class="cmd cmdBonne" id="cBonne" onclick="envoyer({type:'bonne'})">✔ Bonne réponse<small>touche B</small></button>
+      <button class="cmd cmdMauvaise" id="cMauvaise" onclick="envoyer({type:'mauvaise'})">✘ Mauvaise réponse<small>touche M</small></button>
+      <button class="cmd cmdPersonne" id="cPersonne" onclick="envoyer({type:'personne'})">Personne<small>touche P</small></button>
+    </div>
+    <div id="choixPointsFace" class="cache">
+      <span>Combien de points donner ?</span>
+      <button class="pointsFace" onclick="attribuerPoints(1)">1 point</button>
+      <button class="pointsFace" onclick="attribuerPoints(2)">2 points</button>
+      <button class="pointsFace" onclick="attribuerPoints(3)">3 points</button>
+      <button class="pointsFace" onclick="attribuerPoints(4)">4 points</button>
+      <span class="aide">Touches 1, 2, 3 ou 4</span>
+    </div>
+    <div id="ligneValeur">
+      <div id="valeurAffichee" class="valeurAffichee">Valeur actuelle : <span id="valeurCourante" class="valeurCourante"></span> point(s)</div>
+      <span id="correctionValeur"><span>Corriger :</span>
+        <button class="val" data-v="1">1</button><button class="val" data-v="2">2</button><button class="val" data-v="3">3</button>
+        <span class="aide">(touches 1, 2, 3)</span></span>
+      <span id="infoQ"></span>
+    </div>
+    <div id="cartes"></div>
+    <div id="raccourcis">Un joueur sans téléphone ? Quand les buzzers sont ouverts, <b>cliquez sur sa carte</b> pour lui donner la main.
+      &nbsp; <kbd>Ctrl</kbd>+<kbd>Z</kbd> annule la dernière action.</div>
+  </section>
+
+  <!-- =============== 4 À LA SUITE =============== -->
+  <section id="jeuQuatre" class="cache">
+    <div id="tour"></div>
+    <div id="cartesQuatre" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px"></div>
+  </section>
+</main>
+
+<!-- fenêtre de lancement d'une manche -->
+<div id="voile" class="cache">
+  <div class="fenetre">
+    <h2 id="fenTitre"></h2>
+    <div class="aide" id="fenAide">Qui joue cette manche ?</div>
+    <div id="choixJoueurs"></div>
+    <div id="fenParams"></div>
+    <div class="boutonsFen">
+      <button class="btnGris" onclick="fermerFenetre()">Retour</button>
+      <button class="btnVert" onclick="lancer()">Commencer ▶</button>
+    </div>
+  </div>
+</div>
+
+<div id="fin" class="cache"><div class="fenetre">
+  <h2 id="finTitre">Manche terminée</h2>
+  <ol id="finListe"></ol>
+  <div class="boutonsFen" style="justify-content:center">
+    <button class="btnAnnuler" onclick="envoyer({type:'annuler'})">↶ Annuler<small>dernière action · Ctrl+Z</small></button>
+    <button class="btnGris cache" id="btnModifierSuite" onclick="modifierSuite()">Modifier les joueurs</button>
+    <button class="btnVert cache" id="btnSuite" onclick="lancerSuite()"></button>
+    <button class="btnVert" id="btnAccueilFin" onclick="terminer(true)">Revenir à l'accueil</button>
+  </div>
+</div></div>
+
+<div id="qrMini" class="cache" onclick="this.classList.add('cache')">
+  <div class="panneau" style="text-align:center">
+    <div id="qr2" style="background:#fff;border-radius:16px;padding:12px;width:420px;height:420px"></div>
+    <div id="urlJ2" style="font-size:34px;font-weight:800;color:var(--or);margin-top:14px"></div>
+    <div class="aide">Cliquez n'importe où pour fermer</div>
+  </div>
+</div>
+
+<script>
+let ws, E = null, preparation = null;
+let dernierBuzz = "", dernierUrl = "";
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+// ------------------------------------------------ connexion
+function connecter(){
+  ws = new WebSocket("ws://" + location.host + "/ws/lecteur");
+  ws.onopen = () => $("deco").classList.add("cache");
+  ws.onmessage = ev => { const m = JSON.parse(ev.data); if (m.type === "etat") { E = m; rendre(); } };
+  ws.onclose = () => { $("deco").classList.remove("cache"); setTimeout(connecter, 1000); };
+}
+function envoyer(o){ if (ws && ws.readyState === 1) ws.send(JSON.stringify(o)); son.debloquer(); }
+
+// ------------------------------------------------ sons (aucun fichier nécessaire)
+const son = {
+  ctx: null,
+  debloquer(){ if (!this.ctx) { try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){} }
+               if (this.ctx && this.ctx.state === "suspended") this.ctx.resume(); },
+  note(f, d, debut=0, type="square", vol=.18){
+    if (!this.ctx) return; const t = this.ctx.currentTime + debut;
+    const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+    o.type = type; o.frequency.value = f; g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.001, t + d);
+    o.connect(g).connect(this.ctx.destination); o.start(t); o.stop(t + d);
+  },
+  buzz(){ this.note(880, .18); this.note(1175, .3, .12); },
+  bonne(){ this.note(660,.15,0,"triangle",.3); this.note(880,.15,.12,"triangle",.3); this.note(1320,.35,.24,"triangle",.3); },
+  mauvaise(){ this.note(220,.45,0,"sawtooth",.15); },
+};
+document.addEventListener("pointerdown", () => son.debloquer());
+
+// ------------------------------------------------ rendu
+function nom(id){ const j = E.roster.find(j => j.id === id); return j ? j.nom : "?"; }
+function montrer(id, oui){ $(id).classList.toggle("cache", !oui); }
+
+function rendre(){
+  const enJeu = !!E.mode;
+  montrer("accueil", !enJeu);
+  montrer("jeuBuzz", enJeu && E.mode !== "quatre");
+  montrer("jeuQuatre", E.mode === "quatre");
+  montrer("btnAnnuler", enJeu); montrer("btnTerminer", enJeu); montrer("btnQr", enJeu);
+  $("btnAnnuler").disabled = !E.peut_annuler;
+  $("titreManche").textContent = E.nom_mode || "";
+  if (E.url !== dernierUrl) { dessinerQr("qr", E.url); dessinerQr("qr2", E.url); dernierUrl = E.url; }
+  $("urlJ").textContent = E.url.replace("http://", ""); $("urlJ2").textContent = E.url.replace("http://", "");
+  $("autresUrl").textContent = E.adresses.length > 1 ? "Si ça ne marche pas, essayez : " + E.adresses.slice(1).map(a => a.replace("http://","")).join("  ou  ") : "";
+  if (!enJeu) rendreAccueil();
+  else if (E.mode === "quatre") rendreQuatre();
+  else rendreBuzz();
+  rendreFin();
+}
+
+function dessinerQr(id, texte){
+  try { const q = qrcode(0, "M"); q.addData(texte); q.make(); $(id).innerHTML = q.createSvgTag({cellSize: 8, margin: 2, scalable: true}); }
+  catch(e){ $(id).textContent = texte; }
+}
+
+function rendreAccueil(){
+  const L = $("listeJoueurs");
+  if (!E.roster.length) L.innerHTML = '<div class="aide">Aucun joueur pour l\'instant. Ajoutez les membres du club ci-dessous — ils seront gardés pour les prochaines fois.</div>';
+  else L.innerHTML = E.roster.map(j => {
+    const p = E.presents.includes(j.id), t = E.connectes.includes(j.id);
+    return `<div class="ligneJ ${p ? "" : "non"}" onclick="basculer('${j.id}',${!p})">
+      <div class="coche">${p ? "✓" : ""}</div><div class="nomJ">${esc(j.nom)}</div>
+      ${t ? '<span class="tel">📱 connecté</span>' : ""}
+      <button class="outil" title="Renommer" onclick="event.stopPropagation();renommer('${j.id}')">✎</button>
+      <button class="outil" title="Supprimer" onclick="event.stopPropagation();supprimer('${j.id}')">🗑</button></div>`;
+  }).join("");
+  const n = E.connectes.length;
+  $("nbTel").textContent = n ? `${n} téléphone${n > 1 ? "s" : ""} connecté${n > 1 ? "s" : ""}.` : "Aucun téléphone connecté pour l'instant.";
+}
+function basculer(id, oui){ envoyer({type:"present", id, oui}); }
+function ajouterJoueur(ev){ ev.preventDefault(); const v = $("nouveauNom").value.trim(); if (v) envoyer({type:"ajouter_joueur", nom:v}); $("nouveauNom").value = ""; $("nouveauNom").focus(); }
+function renommer(id){ const v = prompt("Nouveau nom :", nom(id)); if (v && v.trim()) envoyer({type:"renommer", id, nom:v.trim()}); }
+function supprimer(id){ if (confirm("Supprimer définitivement " + nom(id) + " de la liste du club ?")) envoyer({type:"supprimer_joueur", id}); }
+
+// ---------- lancement d'une manche
+const TITRES = {neuf:"9 points gagnants", quatre:"4 à la suite", barrage:"Départage", face:"Face-à-face", libre:"Partie libre"};
+function preparer(mode, choixInitial=null, transition=null){
+  const d = E.dernier, presents = E.presents.length ? E.presents : E.roster.map(j => j.id);
+  let choix = choixInitial ? choixInitial.slice() : presents.slice();
+  if (!choixInitial && mode === "quatre" && d && d.mode === "neuf" && d.qualifies.length) choix = d.qualifies.slice();
+  if (!choixInitial && mode === "face" && d && (d.mode === "quatre" || d.mode === "neuf") && d.classement.length >= 2) choix = d.classement.slice(0, 2);
+  preparation = {mode, choix, transition};
+  $("fenTitre").textContent = TITRES[mode];
+  $("fenAide").textContent = mode === "barrage" ? "Qui participe au départage ?" : "Qui joue cette manche ?";
+  const c = E.config;
+  $("fenParams").innerHTML = {
+    neuf: `<div class="param">Points à atteindre : <input type="number" id="pCible" min="1" value="${c.cible_neuf}"></div>`,
+    face: `<div class="param">Points à atteindre : <input type="number" id="pCible" min="1" value="${c.cible_face}"></div>`,
+    libre:`<div class="param">Points à atteindre : <input type="number" id="pCible" min="0" value="${c.cible_libre}"> <span class="aide">(0 = pas de limite)</span></div>`,
+    quatre:`<div class="aide">Chacun joue à son tour sur un thème. Le score est la meilleure série de bonnes réponses d'affilée (4 maximum). Aucune limite de temps : c'est vous qui arrêtez le tour.</div>`,
+    barrage:`<div class="aide">Chaque bonne réponse vaut 1 point. Les deux premiers à 2 points se qualifient. Une place peut déjà être prise par un joueur qualifié d'office.</div>`,
+  }[mode];
+  rendreChoix(); montrer("voile", true);
+}
+function rendreChoix(){
+  const ids = E.roster.map(j => j.id);
+  $("choixJoueurs").innerHTML = ids.map(id => {
+    const p = preparation.choix.includes(id);
+    return `<div class="ligneJ ${p ? "" : "non"}" onclick="cocherChoix('${id}')"><div class="coche">${p ? "✓" : ""}</div><div class="nomJ">${esc(nom(id))}</div></div>`;
+  }).join("") || '<div class="aide">Ajoutez d\'abord des joueurs.</div>';
+}
+function cocherChoix(id){ const c = preparation.choix; const i = c.indexOf(id); i >= 0 ? c.splice(i, 1) : c.push(id); rendreChoix(); }
+function fermerFenetre(){ montrer("voile", false); preparation = null; }
+function lancer(){
+  const p = preparation; if (!p) return;
+  const joueurs = E.roster.map(j => j.id).filter(id => p.choix.includes(id));
+  if (!joueurs.length) { alert("Cochez au moins un joueur."); return; }
+  if (p.mode === "neuf" && joueurs.length < 4 && !confirm("Il y a moins de 4 joueurs. Jouer quand même au 9 points gagnants ? Choisissez Non pour lancer directement le 4 à la suite.")) {
+    envoyer({type:"demarrer", mode:"quatre", joueurs}); fermerFenetre(); return;
+  }
+  if (p.mode === "face" && joueurs.length !== 2 && !confirm("Le face-à-face se joue normalement à 2. Continuer avec " + joueurs.length + " joueurs ?")) return;
+  const o = {type:"demarrer", mode:p.mode, joueurs}, v = id => $(id) ? parseInt($(id).value, 10) : undefined;
+  if (p.mode === "neuf") o.cible_neuf = v("pCible");
+  if (p.mode === "face") o.cible_face = v("pCible");
+  if (p.mode === "libre") o.cible_libre = v("pCible");
+  if (p.mode === "barrage") o.qualifies = p.transition.qualifies;
+  envoyer(o); fermerFenetre();
+}
+function lancerSuite(){
+  const suite = E.prochaine_manche;
+  if (!suite) return;
+  envoyer({type:"demarrer", mode:suite.mode, joueurs:suite.joueurs, qualifies:suite.qualifies});
+}
+function modifierSuite(){
+  const suite = E.prochaine_manche;
+  if (suite) preparer(suite.mode, suite.joueurs, suite);
+}
+function terminer(direct){
+  if (direct || (E.manche && E.manche.fini) || confirm("Terminer la manche et revenir à l'accueil ? Les scores seront enregistrés dans l'historique.")) envoyer({type:"terminer"});
+}
+
+// ---------- manche avec buzzer
+function rendreBuzz(){
+  const m = E.manche, q = m.q, B = $("bandeau");
+  const cible = m.cible || 0;
+  let cls = "b-ferme", html = "";
+  if (m.fini) { cls = "b-fini"; html = `<div class="moyen">Manche terminée</div>`; }
+  else if (q.etat === "buzz") {
+    cls = "b-buzz";
+    const suiv = (q.suivants || []).map(s => `${esc(s[0])} (+${s[1]} ms)`).join(", ");
+    const annonce = E.mode === "face" ? "a la main" : `a la main — ${m.valeur} point${m.valeur > 1 ? "s" : ""}`;
+    html = `<div class="gros">${esc(nom(q.main))}</div><div class="moyen">${annonce}</div>` +
+           (suiv ? `<div class="petit">Ensuite : ${suiv}</div>` : "");
+  } else if (q.etat === "points") {
+    cls = "b-buzz";
+    html = `<div class="gros">${esc(nom(q.main))}</div><div class="moyen">Bonne réponse — choisissez les points</div>`;
+  } else if (q.etat === "ouverte") {
+    cls = "b-ouvert";
+    const ok = q.dernier && q.dernier.ok === false && q.bloques.length;
+    html = `<div class="moyen">${ok ? "Mauvaise réponse — la main passe" : "Buzzers ouverts"}</div><div class="petit">Lisez la question, les joueurs peuvent buzzer à tout moment.</div>`;
+  } else {
+    const d = q.dernier;
+    html = (d && q.num ? `<div class="moyen">${d.ok ? "✔ Bonne réponse de " + esc(nom(d.id)) : "Personne n'a trouvé"}</div>` : `<div class="moyen">Prêt</div>`) +
+           `<div class="petit">Appuyez sur ▶ Question suivante (ou Entrée) pour ouvrir les buzzers.</div>`;
+  }
+  B.className = cls; B.innerHTML = html;
+  const cleBuzz = q.etat === "buzz" ? q.num + ":" + q.main : "";
+  if (cleBuzz && cleBuzz !== dernierBuzz) { son.buzz(); B.classList.add("flash"); setTimeout(() => B.classList.remove("flash"), 300); }
+  dernierBuzz = cleBuzz;
+
+  $("cOuvrir").disabled = m.fini || q.etat !== "fermee";
+  $("cBonne").disabled = $("cMauvaise").disabled = q.etat !== "buzz";
+  $("cPersonne").disabled = q.etat === "fermee" || q.etat === "points";
+  montrer("choixPointsFace", E.mode === "face" && q.etat === "points");
+  document.querySelectorAll(".val").forEach(b => b.classList.toggle("actif", +b.dataset.v === m.valeur));
+  montrer("valeurAffichee", E.mode !== "face");
+  montrer("correctionValeur", !["barrage", "face"].includes(E.mode));
+  $("valeurCourante").textContent = m.valeur;
+  let info = q.num ? `Question n° ${q.num}` : "";
+  if (E.mode === "neuf") info += ` — qualifiés : ${m.qualifies.length} / ${m.nb_qualifies}`;
+  if (E.mode === "barrage") info += ` — qualifiés : ${m.qualifies.length} / ${m.nb_qualifies}`;
+  if (cible) info += ` — objectif ${cible} points`;
+  $("infoQ").textContent = info;
+
+  $("cartes").innerHTML = m.joueurs.map(id => {
+    const s = m.scores[id], qual = ["neuf", "barrage"].includes(E.mode) ? m.qualifies.indexOf(id) : -1;
+    const bloque = q.bloques.includes(id), aMain = q.etat === "buzz" && q.main === id;
+    const cliq = !m.fini && q.etat !== "buzz" && E.eligibles.includes(id);
+    let etiq = "";
+    if (qual >= 0) etiq = `<span style="color:var(--vert)">✔ Qualifié(e) — ${qual + 1}${qual ? "e" : "er"}</span>`;
+    else if (m.gagnant === id) etiq = `<span style="color:var(--or)">🏆 Vainqueur</span>`;
+    else if (aMain) etiq = `<span style="color:var(--or)">🔔 A la main</span>`;
+    else if (bloque) etiq = "A déjà répondu";
+    const pts = cible && cible <= 15 ? `<div class="points">${Array.from({length:cible}, (_, i) => `<i class="${i < s ? "p" : ""}"></i>`).join("")}</div>` : "";
+    return `<div class="carteJ ${aMain ? "main" : ""} ${bloque ? "bloque" : ""} ${qual >= 0 ? "qualif" : ""} ${cliq ? "cliquable" : ""}"
+              ${cliq ? `onclick="envoyer({type:'main_manuelle',id:'${id}'})"` : ""}>
+      <div class="pt ${E.connectes.includes(id) ? "on" : ""}" title="${E.connectes.includes(id) ? "Téléphone connecté" : "Pas de téléphone"}"></div>
+      <div class="n">${esc(nom(id))}</div>
+      <div class="s">${s}${cible ? `<small> / ${cible}</small>` : ""}</div>${pts}
+      <div class="etiq">${etiq}</div>
+      <div class="ajust" onclick="event.stopPropagation()">
+        <button onclick="envoyer({type:'ajuster',id:'${id}',d:-1})" title="Retirer un point">−</button>
+        <button onclick="envoyer({type:'ajuster',id:'${id}',d:1})" title="Ajouter un point">+</button></div>
+    </div>`;
+  }).join("");
+}
+document.querySelectorAll(".val").forEach(b => b.onclick = () => envoyer({type:"valeur", v:+b.dataset.v}));
+function attribuerPoints(v){ envoyer({type:"attribuer_points", v}); }
+
+// ---------- 4 à la suite
+function rendreQuatre(){
+  const m = E.manche, T = $("tour");
+  if (m.tour) {
+    const serie = Math.min(m.serie, 4);
+    T.innerHTML = `<div class="aide">Au tour de</div><div class="nomTour">${esc(nom(m.tour))}</div>
+      <div class="ronds">${[0,1,2,3].map(i => `<i class="${i < serie ? "p" : ""}"></i>`).join("")}</div>
+      <div class="moyen" style="font-size:28px">Série en cours : <b>${m.serie}</b> &nbsp;—&nbsp; meilleure série : <b>${m.meilleur[m.tour]}</b></div>
+      <div class="historique">${m.reponses.map(r => r === "b" ? "✔" : "✘").join(" ")}</div>
+      <div id="cmdQuatre">
+        <button class="cmd cmdBonne" onclick="envoyer({type:'bonne'})">✔ Bonne réponse<small>touche B</small></button>
+        <button class="cmd cmdMauvaise" onclick="envoyer({type:'mauvaise'})">✘ Mauvaise<small>touche M — la série repart à 0</small></button>
+        <button class="cmd cmdPersonne" onclick="envoyer({type:'fin_tour'})">Fin du tour<small>touche F</small></button>
+      </div>`;
+  } else {
+    const d = m.dernier_tour;
+    T.innerHTML = (d ? `<div class="moyen" style="font-size:34px">${esc(nom(d.id))} termine avec une série de <b style="color:var(--or)">${d.meilleur}</b></div>` : "") +
+      `<div class="aide" style="font-size:24px;margin-top:8px">Choisissez le joueur qui joue en cliquant sur « ▶ Faire jouer ».</div>`;
+  }
+  $("cartesQuatre").innerHTML = E.classement.map((id, rang) => {
+    const passe = m.passes.includes(id), enCours = m.tour === id;
+    return `<div class="carteJ ${enCours ? "main" : ""}">
+      <div class="n">${esc(nom(id))}</div>
+      <div class="s">${m.meilleur[id]}<small> / 4</small></div>
+      <div class="etiq">${enCours ? '<span style="color:var(--or)">En train de jouer</span>' : passe ? "A joué" : "N'a pas encore joué"}</div>
+      ${!m.tour ? `<button class="btnJouer" onclick="envoyer({type:'tour',id:'${id}'})">▶ ${passe ? "Rejouer" : "Faire jouer"}</button>` : ""}
+      <div class="ajust" style="margin-top:8px"><button onclick="envoyer({type:'ajuster',id:'${id}',d:-1})">−</button><button onclick="envoyer({type:'ajuster',id:'${id}',d:1})">+</button></div>
+    </div>`;
+  }).join("");
+}
+
+// ---------- fin de manche
+function rendreFin(){
+  const m = E.manche, fini = !!(m && m.fini);
+  montrer("fin", fini);
+  if (!fini) return;
+  const suite = E.prochaine_manche;
+  montrer("btnSuite", !!suite);
+  montrer("btnModifierSuite", !!suite);
+  montrer("btnAccueilFin", !suite);
+  let titre = "Manche terminée", items = [];
+  if (E.mode === "neuf") {
+    titre = "Qualifiés pour le 4 à la suite";
+    items = m.qualifies.map((id, i) => `<li><b>${esc(nom(id))}</b> — ${m.scores[id]} pts</li>`);
+  } else if (E.mode === "quatre") {
+    if (suite && suite.mode === "barrage") {
+      titre = "Égalité : départage nécessaire";
+      items = suite.qualifies.map(id => `<li><b>${esc(nom(id))}</b> — qualifié(e) d'office</li>`)
+        .concat(suite.joueurs.map(id => `<li><b>${esc(nom(id))}</b> — à départager (${m.meilleur[id]})</li>`));
+    } else if (suite) {
+      titre = "Qualifiés pour le face-à-face";
+      items = suite.joueurs.map(id => `<li><b>${esc(nom(id))}</b> — série de ${m.meilleur[id]}</li>`);
+    } else {
+      items = E.classement.map(id => `<li><b>${esc(nom(id))}</b> — série de ${m.meilleur[id]}</li>`);
+    }
+  } else if (E.mode === "barrage") {
+    titre = "Qualifiés pour le face-à-face";
+    items = m.qualifies.map(id => `<li><b>${esc(nom(id))}</b> — ${m.directs.includes(id) ? "qualifié(e) d'office" : "qualifié(e) au départage"}</li>`);
+  } else {
+    titre = "🏆 " + nom(m.gagnant) + " gagne !";
+    items = E.classement.map(id => `<li><b>${esc(nom(id))}</b> — ${m.scores[id]} pts</li>`);
+  }
+  $("finTitre").textContent = titre; $("finListe").innerHTML = items.join("");
+  if (suite) $("btnSuite").textContent = `Lancer ${TITRES[suite.mode]} ▶`;
+}
+
+// ------------------------------------------------ boutons & clavier
+$("btnAnnuler").onclick = () => envoyer({type:"annuler"});
+$("btnTerminer").onclick = () => terminer(false);
+$("btnQr").onclick = () => montrer("qrMini", true);
+
+document.addEventListener("keydown", ev => {
+  if (!E || !E.mode) return;
+  if (ev.target.tagName === "INPUT") return;
+  if (!$("voile").classList.contains("cache")) return;
+  const k = ev.key.toLowerCase();
+  if ((ev.ctrlKey || ev.metaKey) && k === "z") { envoyer({type:"annuler"}); ev.preventDefault(); return; }
+  if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
+  const m = E.manche;
+  if (E.mode === "quatre") {
+    if (k === "b") { envoyer({type:"bonne"}); son.bonne(); }
+    else if (k === "m") { envoyer({type:"mauvaise"}); son.mauvaise(); }
+    else if (k === "f") envoyer({type:"fin_tour"});
+    return;
+  }
+  if (k === "enter" || k === " ") { if (m.q.etat === "fermee") envoyer({type:"ouvrir"}); ev.preventDefault(); }
+  else if (k === "b" && m.q.etat === "buzz") { envoyer({type:"bonne"}); son.bonne(); }
+  else if (k === "m" && m.q.etat === "buzz") { envoyer({type:"mauvaise"}); son.mauvaise(); }
+  else if (k === "p") envoyer({type:"personne"});
+  else if (E.mode === "face" && m.q.etat === "points" && ["1","2","3","4"].includes(k)) attribuerPoints(+k);
+  else if (!["barrage", "face"].includes(E.mode) && ["1","2","3"].includes(k)) envoyer({type:"valeur", v:+k});
+});
+["cBonne"].forEach(id => $(id).addEventListener("click", () => son.bonne()));
+["cMauvaise"].forEach(id => $(id).addEventListener("click", () => son.mauvaise()));
+document.addEventListener("click", ev => {
+  const b = ev.target.closest("#cmdQuatre .cmdBonne, #cmdQuatre .cmdMauvaise");
+  if (b) b.classList.contains("cmdBonne") ? son.bonne() : son.mauvaise();
+});
+
+connecter();
+</script>
+</body>
+</html>
